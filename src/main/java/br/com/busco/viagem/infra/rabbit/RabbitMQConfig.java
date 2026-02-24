@@ -11,10 +11,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    @Value("${rabbitmq.queue.viagem:viagem-queue}")
+    @Value("${viagem-queue}")
     private String viagemQueue;
 
-    @Value("${rabbitmq.queue.dlq:viagem-dlq-queue}")
+    @Value("${viagem-dlq-queue}")
     private String dlqQueue;
 
     @Bean

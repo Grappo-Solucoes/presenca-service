@@ -6,6 +6,7 @@ import br.com.busco.viagem.domain.events.PresencaCriada;
 import br.com.busco.viagem.domain.events.PresencaRegistrada;
 import br.com.busco.viagem.domain.exceptions.NaoPossivelJustificarPresenca;
 import br.com.busco.viagem.sk.ddd.AbstractAggregateRoot;
+import br.com.busco.viagem.sk.ddd.TenantId;
 import br.com.busco.viagem.sk.ids.AlunoId;
 import br.com.busco.viagem.sk.ids.PresencaId;
 import br.com.busco.viagem.sk.ids.ViagemId;
@@ -14,6 +15,8 @@ import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import static br.com.busco.viagem.sk.ids.PresencaId.randomId;
 
 @Table
 @Entity
@@ -36,6 +39,7 @@ public final class Presenca extends AbstractAggregateRoot<PresencaId> {
     private String justificativa;
 
     private Presenca(AlunoId aluno, ViagemId viagem) {
+        super(randomId());
         this.aluno = aluno;
         this.viagem = viagem;
         this.status = Status.PENDENTE;

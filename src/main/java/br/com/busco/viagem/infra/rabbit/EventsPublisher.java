@@ -16,7 +16,7 @@ public class EventsPublisher {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
-    @Value("${rabbitmq.queue.viagem:viagem-queue}")
+    @Value("${viagem-queue}")
     private String queue;
 
     private void publicarEvento(Object evento, String eventType) {

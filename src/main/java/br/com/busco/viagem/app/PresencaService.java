@@ -6,6 +6,9 @@ import br.com.busco.viagem.app.cmd.RegistrarAusencia;
 import br.com.busco.viagem.app.cmd.RegistrarFalta;
 import br.com.busco.viagem.domain.Presenca;
 import br.com.busco.viagem.domain.PresencaRepository;
+import br.com.busco.viagem.domain.service.EmbarcarRateLimiter;
+import br.com.busco.viagem.domain.service.PresencaLockService;
+import br.com.busco.viagem.infra.redis.PresencaCacheService;
 import br.com.busco.viagem.sk.ids.AlunoId;
 import br.com.busco.viagem.sk.ids.PresencaId;
 import br.com.busco.viagem.sk.ids.ViagemId;
@@ -19,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import static jakarta.persistence.LockModeType.PESSIMISTIC_READ;
-import static java.lang.String.format;
 import static org.springframework.transaction.annotation.Propagation.REQUIRES_NEW;
 
 @AllArgsConstructor
@@ -32,6 +34,9 @@ public class PresencaService {
 
     private final PresencaRepository repository;
     private final BuscarAlunoPorCarterinhaGateway carterinhaGateway;
+    private final PresencaCacheService cacheService;
+    private final EmbarcarRateLimiter rateLimiter;
+    private final PresencaLockService lockService;
 
     @NonNull
     @Lock(PESSIMISTIC_READ)
@@ -43,14 +48,33 @@ public class PresencaService {
     @NonNull
     @Lock(PESSIMISTIC_READ)
     public PresencaId handle(EmbarcarAluno cmd) {
+
         ViagemId viagem = cmd.getId();
         AlunoId aluno = carterinhaGateway.buscarAlunoPorCarterinha(cmd.getAluno());
+        if (!rateLimiter.podeEmbarcar(aluno)) {
+            throw new IllegalStateException("Limite de tentativas excedido");
+        }
 
-        Presenca presenca = repository.findByAlunoAndViagem(aluno, viagem)
-                .orElseThrow(() -> new EntityNotFoundException(format("Not found any Account with code.")));
-        presenca.registrarPresenca();
+        if (!lockService.tryLock(aluno, viagem)) {
+            throw new IllegalStateException("Operação em andamento");
+        }
 
-        return repository.save(presenca).getId();
+        try {
+            Presenca presenca = cacheService.getPresencaFromCache(aluno, viagem)
+                    .orElseGet(() -> repository.findByAlunoAndViagem(aluno, viagem)
+                            .orElseThrow(() -> new EntityNotFoundException("Presença não encontrada")));
+
+            presenca.registrarPresenca();
+            Presenca saved = repository.save(presenca);
+
+            // Atualiza cache
+            cacheService.cachePresenca(saved);
+
+            return saved.getId();
+
+        } finally {
+            lockService.unlock(aluno, viagem);
+        }
     }
 
     @NonNull
@@ -58,12 +82,22 @@ public class PresencaService {
     public PresencaId handle(RegistrarAusencia cmd) {
         ViagemId viagem = cmd.getId();
         AlunoId aluno = cmd.getAluno();
+        if (!lockService.tryLock(aluno, viagem)) {
+            throw new IllegalStateException(
+                    "Falta sendo processada por outro usuário"
+            );
+        }
 
-        Presenca presenca = repository.findByAlunoAndViagem(aluno, viagem)
-                .orElseThrow(() -> new EntityNotFoundException(format("Not found any Account with code.")));
-        presenca.justificarFalta(cmd.getMotivo());
+        try {
+            Presenca presenca = repository.findByAlunoAndViagem(aluno, viagem)
+                    .orElseThrow(() -> new EntityNotFoundException("Presença não encontrada"));
 
-        return repository.save(presenca).getId();
+            presenca.justificarFalta(cmd.getMotivo());
+            return repository.save(presenca).getId();
+
+        } finally {
+            lockService.unlock(aluno, viagem);
+        }
     }
 
     @NonNull
@@ -72,10 +106,20 @@ public class PresencaService {
         ViagemId viagem = cmd.getId();
         AlunoId aluno = cmd.getAluno();
 
-        Presenca presenca = repository.findByAlunoAndViagem(aluno, viagem)
-                .orElseThrow(() -> new EntityNotFoundException(format("Not found any Account with code.")));
-        presenca.registrarFalta();
+        if (!lockService.tryLock(aluno, viagem)) {
+            throw new IllegalStateException(
+                    "Falta sendo registrada por outro processo"
+            );
+        }
 
-        return repository.save(presenca).getId();
+        try {
+            Presenca presenca = repository.findByAlunoAndViagem(aluno, viagem)
+                    .orElseThrow(() -> new EntityNotFoundException("Presença não encontrada"));
+
+            presenca.registrarFalta();
+            return repository.save(presenca).getId();
+        } finally {
+            lockService.unlock(aluno, viagem);
+        }
     }
 }

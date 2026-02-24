@@ -1,16 +1,18 @@
 CREATE TABLE presenca (
-                          id VARCHAR(36) NOT NULL,
-                          aluno_id VARCHAR(36) NOT NULL,
-                          viagem_id VARCHAR(36) NOT NULL,
+                          id uuid NOT NULL,
+                          aluno_id uuid NOT NULL,
+                          viagem_id uuid NOT NULL,
+                          data_viagem date not null,
                           status VARCHAR(20) NOT NULL,
                           justificativa TEXT,
                           version BIGINT,
+                          tenant_id uuid not null,
 
-                          PRIMARY KEY (id),
-                          UNIQUE KEY uk_presenca_aluno_viagem (aluno_id, viagem_id),
-                          INDEX idx_status (status),
-                          INDEX idx_viagem (viagem_id),
-                          INDEX idx_aluno (aluno_id),
+                          PRIMARY KEY (id, data_viagem),
+                          CONSTRAINT uk_presenca_aluno_viagem UNIQUE (tenant_id, aluno_id, viagem_id, data_viagem),
+                          CONSTRAINT chk_status CHECK (
+                              status IN ('PENDENTE', 'PRESENTE', 'FALTA', 'FALTA_JUSTIFICADA')
+                              )
+)
+PARTITION BY RANGE (data_viagem) ;
 
-                          CONSTRAINT chk_status CHECK (status IN ('PENDENTE', 'PRESENTE', 'FALTA', 'FALTA_JUSTIFICADA'))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
