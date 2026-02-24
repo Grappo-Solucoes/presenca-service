@@ -1,17 +1,16 @@
 package br.com.busco.viagem.sk.ddd;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Session;
-import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
+import org.springframework.orm.jpa.EntityManagerFactoryUtils;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.support.ServletRequestHandledEvent;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -21,7 +20,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class HibernateTenantFilter extends OncePerRequestFilter {
 
-    private final EntityManager entityManager;
+    private final EntityManagerFactory entityManagerFactory;
 
     @Override
     protected void doFilterInternal(
@@ -30,11 +29,14 @@ public class HibernateTenantFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        EntityManager entityManager = EntityManagerFactoryUtils
+                .getTransactionalEntityManager(entityManagerFactory);
+
         try {
 
             var tenant = TenantContext.get();
 
-            if (tenant != null) {
+            if (tenant != null && entityManager != null) {
                 entityManager.unwrap(Session.class)
                         .enableFilter("tenantFilter")
                         .setParameter("tenantId", tenant.toUUID());
@@ -43,8 +45,10 @@ public class HibernateTenantFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
 
         } finally {
-            entityManager.unwrap(Session.class)
-                    .disableFilter("tenantFilter");
+            if (entityManager != null) {
+                entityManager.unwrap(Session.class)
+                        .disableFilter("tenantFilter");
+            }
         }
     }
 }
