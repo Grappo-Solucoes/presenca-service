@@ -11,9 +11,9 @@ public interface PresencaRepository {
 
     Presenca save(Presenca presenca);
     Optional<Presenca> findById(PresencaId presenca);
-    Optional<Presenca> findByAlunoAndViagem(AlunoId aluno, ViagemId viagem);
+    Optional<Presenca> findByAlunoAndViagemViagem(AlunoId aluno, ViagemId viagem);
 
-    List<Presenca> findByIdViagemIdAndStatus(
+    List<Presenca> findByViagemAndStatus(
             ViagemId viagemId,
             Status status
     );

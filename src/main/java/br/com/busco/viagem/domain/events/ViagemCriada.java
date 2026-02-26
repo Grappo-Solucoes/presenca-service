@@ -1,4 +1,4 @@
-package br.com.busco.viagem.infra.listeners.events;
+package br.com.busco.viagem.domain.events;
 
 import br.com.busco.viagem.sk.ddd.DomainEvent;
 import br.com.busco.viagem.sk.ids.AlunoId;
@@ -8,6 +8,7 @@ import lombok.*;
 
 import java.time.Instant;
 import java.util.Set;
+import java.util.UUID;
 
 @Data
 @Builder

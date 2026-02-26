@@ -41,6 +41,7 @@ public abstract class AbstractEntity<ID extends DomainObjectId>
 
     @Setter
     @Embedded
+    @AttributeOverride(name = "uuid", column = @Column(name = "tenant_id"))
     private TenantId tenantId;
 
     @Version
@@ -63,9 +64,9 @@ public abstract class AbstractEntity<ID extends DomainObjectId>
      *
      * @param id the ID to assign to the entity.
      */
-    protected AbstractEntity(@NonNull ID id, @NonNull TenantId tenantId) {
+    protected AbstractEntity(@NonNull ID id, TenantId tenantId) {
         this.id = requireNonNull(id, "id must not be null");
-        this.tenantId = requireNonNull(tenantId, "tennant id must not be null");
+        this.tenantId = tenantId;
     }
 
     @NonNull

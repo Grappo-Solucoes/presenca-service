@@ -30,15 +30,14 @@ public final class Presenca extends AbstractAggregateRoot<PresencaId> {
     private AlunoId aluno;
 
     @Embedded
-    @AttributeOverride(name = "uuid", column = @Column(name = "viagem_id"))
-    private ViagemId viagem;
+    private Viagem viagem;
 
     @Enumerated(EnumType.STRING)
     private Status status;
 
     private String justificativa;
 
-    private Presenca(AlunoId aluno, ViagemId viagem) {
+    private Presenca(AlunoId aluno, Viagem viagem) {
         super(randomId());
         this.aluno = aluno;
         this.viagem = viagem;
@@ -82,7 +81,7 @@ public final class Presenca extends AbstractAggregateRoot<PresencaId> {
     }
 
 
-    public static Presenca of(AlunoId aluno, ViagemId viagem) {
+    public static Presenca of(AlunoId aluno, Viagem viagem) {
         return new Presenca(aluno, viagem);
     }
 }

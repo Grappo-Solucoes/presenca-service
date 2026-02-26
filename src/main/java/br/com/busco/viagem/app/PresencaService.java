@@ -6,6 +6,7 @@ import br.com.busco.viagem.app.cmd.RegistrarAusencia;
 import br.com.busco.viagem.app.cmd.RegistrarFalta;
 import br.com.busco.viagem.domain.Presenca;
 import br.com.busco.viagem.domain.PresencaRepository;
+import br.com.busco.viagem.domain.Viagem;
 import br.com.busco.viagem.domain.service.EmbarcarRateLimiter;
 import br.com.busco.viagem.domain.service.PresencaLockService;
 import br.com.busco.viagem.infra.redis.PresencaCacheService;
@@ -34,6 +35,7 @@ public class PresencaService {
 
     private final PresencaRepository repository;
     private final BuscarAlunoPorCarterinhaGateway carterinhaGateway;
+    private final ViagemGateway viagemGateway;
     private final PresencaCacheService cacheService;
     private final EmbarcarRateLimiter rateLimiter;
     private final PresencaLockService lockService;
@@ -41,7 +43,8 @@ public class PresencaService {
     @NonNull
     @Lock(PESSIMISTIC_READ)
     public PresencaId handle(CriarPresenca cmd) {
-        Presenca presenca = Presenca.of(cmd.getAluno(), cmd.getId());
+        Viagem viagem = viagemGateway.buscarViagem(cmd.getId());
+        Presenca presenca = Presenca.of(cmd.getAluno(), viagem);
         return repository.save(presenca).getId();
     }
 
@@ -61,7 +64,7 @@ public class PresencaService {
 
         try {
             Presenca presenca = cacheService.getPresencaFromCache(aluno, viagem)
-                    .orElseGet(() -> repository.findByAlunoAndViagem(aluno, viagem)
+                    .orElseGet(() -> repository.findByAlunoAndViagemViagem(aluno, viagem)
                             .orElseThrow(() -> new EntityNotFoundException("Presença não encontrada")));
 
             presenca.registrarPresenca();
@@ -89,7 +92,7 @@ public class PresencaService {
         }
 
         try {
-            Presenca presenca = repository.findByAlunoAndViagem(aluno, viagem)
+            Presenca presenca = repository.findByAlunoAndViagemViagem(aluno, viagem)
                     .orElseThrow(() -> new EntityNotFoundException("Presença não encontrada"));
 
             presenca.justificarFalta(cmd.getMotivo());
@@ -113,7 +116,7 @@ public class PresencaService {
         }
 
         try {
-            Presenca presenca = repository.findByAlunoAndViagem(aluno, viagem)
+            Presenca presenca = repository.findByAlunoAndViagemViagem(aluno, viagem)
                     .orElseThrow(() -> new EntityNotFoundException("Presença não encontrada"));
 
             presenca.registrarFalta();

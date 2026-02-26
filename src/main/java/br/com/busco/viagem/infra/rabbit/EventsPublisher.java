@@ -16,15 +16,15 @@ public class EventsPublisher {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
-    @Value("${viagem-queue}")
-    private String queue;
+    @Value("${viagem-exchange}")
+    private String exchange;
 
     private void publicarEvento(Object evento, String eventType) {
         try {
             log.info("Publicando evento {} ",
                     eventType);
 
-            rabbitTemplate.convertAndSend(queue, evento,
+            rabbitTemplate.convertAndSend(exchange, "", evento,
                     message -> {
                         message.getMessageProperties().setHeader("event-type", eventType);
                         message.getMessageProperties().setHeader("version", "1.0");

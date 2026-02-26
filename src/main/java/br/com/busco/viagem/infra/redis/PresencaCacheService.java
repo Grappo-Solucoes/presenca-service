@@ -23,7 +23,7 @@ public class PresencaCacheService {
     }
 
     public void cachePresenca(Presenca presenca) {
-        String key = generateKey(presenca.getAluno(), presenca.getViagem());
+        String key = generateKey(presenca.getAluno(), presenca.getViagem().getViagem());
         redisTemplate.opsForValue().set(key, presenca, CACHE_TTL, TimeUnit.MINUTES);
     }
 
