@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
-import static org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentRequest;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/viagem")
@@ -31,10 +31,10 @@ public class PresencaController {
     @ApiResponse(responseCode = "500", description = "Erro interno no servidor")
     public ResponseEntity<Void> embarcar(@PathVariable UUID id, @PathVariable String aluno) throws Exception {
         EmbarcarAluno cmd = EmbarcarAluno.builder().id(ViagemId.fromString(id.toString())).aluno(aluno).build();
-        service.handle(cmd);
+        PresencaId presencaId = service.handle(cmd);
 
-        return ResponseEntity.created(fromCurrentRequest()
-                        .path("/").path(id.toString()).build().toUri())
+        return ResponseEntity.created(ServletUriComponentsBuilder.fromCurrentContextPath()
+                        .path("/api/viagem/presenca/{id}").buildAndExpand(presencaId.toUUID()).toUri())
                 .build();
     }
 
@@ -46,8 +46,8 @@ public class PresencaController {
     public ResponseEntity<Void> cadastrarAusencia(@RequestBody @NonNull RegistrarAusencia cmd) throws Exception {
         PresencaId id = service.handle(cmd);
 
-        return ResponseEntity.created(fromCurrentRequest()
-                        .path("/rota").path(id.toString()).build().toUri())
+        return ResponseEntity.created(ServletUriComponentsBuilder.fromCurrentRequest()
+                        .path("/{id}").buildAndExpand(id.toUUID()).toUri())
                 .build();
     }
 }

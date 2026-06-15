@@ -6,6 +6,8 @@ import br.com.busco.presenca.app.cmd.RegistrarAusencia;
 import br.com.busco.presenca.app.cmd.RegistrarFalta;
 import br.com.busco.presenca.domain.Presenca;
 import br.com.busco.presenca.domain.PresencaRepository;
+import br.com.busco.presenca.domain.Viagem;
+import br.com.busco.presenca.domain.DataViagem;
 import br.com.busco.presenca.sk.ids.AlunoId;
 import br.com.busco.presenca.sk.ids.PresencaId;
 import br.com.busco.presenca.sk.ids.ViagemId;
@@ -74,7 +76,7 @@ class PresencaServiceIntegrationTest {
                     .id(viagemId)
                     .build();
 
-            Presenca novaPresenca = Presenca.of(alunoId, viagemId);
+            Presenca novaPresenca = Presenca.of(alunoId, Viagem.of(viagemId, DataViagem.of(LocalDateTime.now())));
             when(repository.save(any(Presenca.class))).thenReturn(presenca);
 
             // Act
@@ -85,7 +87,7 @@ class PresencaServiceIntegrationTest {
             verify(repository).save(presencaCaptor.capture());
             Presenca capturedPresenca = presencaCaptor.getValue();
             assertThat(capturedPresenca.getAluno()).isEqualTo(alunoId);
-            assertThat(capturedPresenca.getViagem()).isEqualTo(viagemId);
+            assertThat(capturedPresenca.getViagem().getViagem()).isEqualTo(viagemId);
         }
 
         @Test
@@ -132,7 +134,7 @@ class PresencaServiceIntegrationTest {
                     .build();
 
             when(carterinhaGateway.buscarAlunoPorCarterinha(carterinha)).thenReturn(alunoId);
-            when(repository.findByAlunoAndViagem(alunoId, viagemId)).thenReturn(Optional.of(presenca));
+            when(repository.findByAlunoAndViagemViagem(alunoId, viagemId)).thenReturn(Optional.of(presenca));
             when(repository.save(any(Presenca.class))).thenReturn(presenca);
 
             // Act
@@ -155,7 +157,7 @@ class PresencaServiceIntegrationTest {
                     .build();
 
             when(carterinhaGateway.buscarAlunoPorCarterinha(carterinha)).thenReturn(alunoId);
-            when(repository.findByAlunoAndViagem(alunoId, viagemId)).thenReturn(Optional.empty());
+            when(repository.findByAlunoAndViagemViagem(alunoId, viagemId)).thenReturn(Optional.empty());
 
             // Act & Assert
             assertThatThrownBy(() -> presencaService.handle(cmd))
@@ -210,7 +212,7 @@ class PresencaServiceIntegrationTest {
                     .motivo(motivo)
                     .build();
 
-            when(repository.findByAlunoAndViagem(alunoId, viagemId)).thenReturn(Optional.of(presenca));
+            when(repository.findByAlunoAndViagemViagem(alunoId, viagemId)).thenReturn(Optional.of(presenca));
             when(repository.save(any(Presenca.class))).thenReturn(presenca);
 
             // Act
@@ -232,7 +234,7 @@ class PresencaServiceIntegrationTest {
                     .motivo("")
                     .build();
 
-            when(repository.findByAlunoAndViagem(alunoId, viagemId)).thenReturn(Optional.of(presenca));
+            when(repository.findByAlunoAndViagemViagem(alunoId, viagemId)).thenReturn(Optional.of(presenca));
             when(repository.save(any(Presenca.class))).thenReturn(presenca);
 
             // Act
@@ -253,7 +255,7 @@ class PresencaServiceIntegrationTest {
                     .motivo(null)
                     .build();
 
-            when(repository.findByAlunoAndViagem(alunoId, viagemId)).thenReturn(Optional.of(presenca));
+            when(repository.findByAlunoAndViagemViagem(alunoId, viagemId)).thenReturn(Optional.of(presenca));
             when(repository.save(any(Presenca.class))).thenReturn(presenca);
 
             // Act
@@ -274,7 +276,7 @@ class PresencaServiceIntegrationTest {
                     .motivo("Sick")
                     .build();
 
-            when(repository.findByAlunoAndViagem(alunoId, viagemId)).thenReturn(Optional.empty());
+            when(repository.findByAlunoAndViagemViagem(alunoId, viagemId)).thenReturn(Optional.empty());
 
             // Act & Assert
             assertThatThrownBy(() -> presencaService.handle(cmd))
@@ -296,7 +298,7 @@ class PresencaServiceIntegrationTest {
                     .aluno(alunoId)
                     .build();
 
-            when(repository.findByAlunoAndViagem(alunoId, viagemId)).thenReturn(Optional.of(presenca));
+            when(repository.findByAlunoAndViagemViagem(alunoId, viagemId)).thenReturn(Optional.of(presenca));
             when(repository.save(any(Presenca.class))).thenReturn(presenca);
 
             // Act
@@ -317,7 +319,7 @@ class PresencaServiceIntegrationTest {
                     .aluno(alunoId)
                     .build();
 
-            when(repository.findByAlunoAndViagem(alunoId, viagemId)).thenReturn(Optional.empty());
+            when(repository.findByAlunoAndViagemViagem(alunoId, viagemId)).thenReturn(Optional.empty());
 
             // Act & Assert
             assertThatThrownBy(() -> presencaService.handle(cmd))
@@ -343,7 +345,7 @@ class PresencaServiceIntegrationTest {
             when(carterinhaGateway.buscarAlunoPorCarterinha(carterinha)).thenReturn(alunoId);
 
             // Simulate presence already marked
-            when(repository.findByAlunoAndViagem(alunoId, viagemId))
+            when(repository.findByAlunoAndViagemViagem(alunoId, viagemId))
                     .thenReturn(Optional.of(presenca));
 
             doThrow(new IllegalStateException("Presence already registered"))
@@ -370,7 +372,7 @@ class PresencaServiceIntegrationTest {
                     .motivo("Medical appointment")
                     .build();
 
-            when(repository.findByAlunoAndViagem(alunoId, viagemId))
+            when(repository.findByAlunoAndViagemViagem(alunoId, viagemId))
                     .thenReturn(Optional.of(presenca));
             when(repository.save(any(Presenca.class))).thenReturn(presenca);
 
@@ -432,7 +434,7 @@ class PresencaServiceIntegrationTest {
             when(carterinhaGateway.buscarAlunoPorCarterinha(carterinha)).thenReturn(alunoId);
 
             // After creation, the presence exists
-            when(repository.findByAlunoAndViagem(alunoId, viagemId))
+            when(repository.findByAlunoAndViagemViagem(alunoId, viagemId))
                     .thenReturn(Optional.of(novaPresenca));
 
             // Act - Create
