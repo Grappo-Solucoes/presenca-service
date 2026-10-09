@@ -1,4 +1,4 @@
-package br.com.busco.presenca.domain.service;
+package br.com.busco.presenca.infra.redis;
 
 import br.com.busco.presenca.sk.ids.AlunoId;
 import lombok.RequiredArgsConstructor;

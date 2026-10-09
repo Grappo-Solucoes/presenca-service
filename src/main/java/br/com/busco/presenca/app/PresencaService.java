@@ -7,8 +7,9 @@ import br.com.busco.presenca.app.cmd.RegistrarFalta;
 import br.com.busco.presenca.domain.Presenca;
 import br.com.busco.presenca.domain.PresencaRepository;
 import br.com.busco.presenca.domain.Viagem;
-import br.com.busco.presenca.domain.service.EmbarcarRateLimiter;
-import br.com.busco.presenca.domain.service.PresencaLockService;
+import br.com.busco.presenca.domain.service.PresencaDomainService;
+import br.com.busco.presenca.infra.redis.EmbarcarRateLimiter;
+import br.com.busco.presenca.infra.redis.PresencaLockService;
 import br.com.busco.presenca.infra.redis.PresencaCacheService;
 import br.com.busco.presenca.sk.ids.AlunoId;
 import br.com.busco.presenca.sk.ids.PresencaId;
@@ -39,6 +40,7 @@ public class PresencaService {
     private final PresencaCacheService cacheService;
     private final EmbarcarRateLimiter rateLimiter;
     private final PresencaLockService lockService;
+    private final PresencaDomainService domainService;
 
     @NonNull
     @Lock(PESSIMISTIC_READ)
@@ -67,7 +69,7 @@ public class PresencaService {
                     .orElseGet(() -> repository.findByAlunoAndViagemViagem(aluno, viagem)
                             .orElseThrow(() -> new EntityNotFoundException("Presença não encontrada")));
 
-            presenca.registrarPresenca();
+            domainService.registrarPresenca(presenca);
             Presenca saved = repository.save(presenca);
 
             // Atualiza cache
@@ -95,7 +97,7 @@ public class PresencaService {
             Presenca presenca = repository.findByAlunoAndViagemViagem(aluno, viagem)
                     .orElseThrow(() -> new EntityNotFoundException("Presença não encontrada"));
 
-            presenca.justificarFalta(cmd.getMotivo());
+            domainService.justificarFalta(presenca, cmd.getMotivo());
             return repository.save(presenca).getId();
 
         } finally {
@@ -119,7 +121,7 @@ public class PresencaService {
             Presenca presenca = repository.findByAlunoAndViagemViagem(aluno, viagem)
                     .orElseThrow(() -> new EntityNotFoundException("Presença não encontrada"));
 
-            presenca.registrarFalta();
+            domainService.registrarFalta(presenca);
             return repository.save(presenca).getId();
         } finally {
             lockService.unlock(aluno, viagem);

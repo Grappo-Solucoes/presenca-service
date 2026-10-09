@@ -1,6 +1,8 @@
 package br.com.busco.presenca.domain;
 
 import br.com.busco.presenca.domain.exceptions.NaoPossivelJustificarPresenca;
+import br.com.busco.presenca.domain.policy.TransicaoDePresencaPolicy;
+import br.com.busco.presenca.domain.service.PresencaDomainService;
 import br.com.busco.presenca.sk.ids.AlunoId;
 import br.com.busco.presenca.sk.ids.ViagemId;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +19,7 @@ class PresencaTest {
     private AlunoId alunoId;
     private Viagem viagem;
     private Presenca presenca;
+    private final PresencaDomainService domainService = new PresencaDomainService(new TransicaoDePresencaPolicy());
 
     @BeforeEach
     void setUp() {
@@ -40,8 +43,8 @@ class PresencaTest {
     @Test
     @DisplayName("registra presenca apenas quando pendente")
     void registraPresencaApenasQuandoPendente() {
-        presenca.registrarPresenca();
-        presenca.registrarPresenca();
+        domainService.registrarPresenca(presenca);
+        domainService.registrarPresenca(presenca);
 
         assertThat(presenca.getStatus()).isEqualTo(Status.PRESENTE);
         assertThat(presenca.getJustificativa()).isNull();
@@ -50,9 +53,9 @@ class PresencaTest {
     @Test
     @DisplayName("registra falta apenas quando pendente")
     void registraFaltaApenasQuandoPendente() {
-        presenca.registrarFalta();
-        presenca.registrarFalta();
-        presenca.registrarPresenca();
+        domainService.registrarFalta(presenca);
+        domainService.registrarFalta(presenca);
+        domainService.registrarPresenca(presenca);
 
         assertThat(presenca.getStatus()).isEqualTo(Status.FALTA);
         assertThat(presenca.getJustificativa()).isNull();
@@ -61,9 +64,9 @@ class PresencaTest {
     @Test
     @DisplayName("justifica falta pendente ou registrada")
     void justificaFaltaPendenteOuRegistrada() {
-        presenca.registrarFalta();
+        domainService.registrarFalta(presenca);
 
-        presenca.justificarFalta("Atestado medico");
+        domainService.justificarFalta(presenca, "Atestado medico");
 
         assertThat(presenca.getStatus()).isEqualTo(Status.FALTA_JUSTIFICADA);
         assertThat(presenca.getJustificativa()).isEqualTo("Atestado medico");
@@ -72,9 +75,9 @@ class PresencaTest {
     @Test
     @DisplayName("mantem primeira justificativa quando ja justificada")
     void mantemPrimeiraJustificativaQuandoJaJustificada() {
-        presenca.justificarFalta("Primeiro motivo");
+        domainService.justificarFalta(presenca, "Primeiro motivo");
 
-        presenca.justificarFalta("Segundo motivo");
+        domainService.justificarFalta(presenca, "Segundo motivo");
 
         assertThat(presenca.getStatus()).isEqualTo(Status.FALTA_JUSTIFICADA);
         assertThat(presenca.getJustificativa()).isEqualTo("Primeiro motivo");
@@ -83,9 +86,9 @@ class PresencaTest {
     @Test
     @DisplayName("nao justifica aluno presente")
     void naoJustificaAlunoPresente() {
-        presenca.registrarPresenca();
+        domainService.registrarPresenca(presenca);
 
-        assertThatThrownBy(() -> presenca.justificarFalta("Atestado medico"))
+        assertThatThrownBy(() -> domainService.justificarFalta(presenca, "Atestado medico"))
                 .isInstanceOf(NaoPossivelJustificarPresenca.class)
                 .hasMessage("Não pode justificar se já está presente");
         assertThat(presenca.getStatus()).isEqualTo(Status.PRESENTE);
