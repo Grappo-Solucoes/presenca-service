@@ -5,6 +5,10 @@ import br.com.busco.presenca.app.cmd.EmbarcarAluno;
 import br.com.busco.presenca.app.cmd.RegistrarAusencia;
 import br.com.busco.presenca.app.cmd.RegistrarFalta;
 import br.com.busco.presenca.domain.Presenca;
+import br.com.busco.presenca.domain.Status;
+import br.com.busco.presenca.domain.policy.TransicaoDePresencaPolicy;
+import br.com.busco.presenca.domain.service.PresencaDomainService;
+
 import br.com.busco.presenca.domain.PresencaRepository;
 import br.com.busco.presenca.domain.Viagem;
 import br.com.busco.presenca.domain.DataViagem;
@@ -40,6 +44,9 @@ class PresencaServiceIntegrationTest {
     @Mock
     private BuscarAlunoPorCarterinhaGateway carterinhaGateway;
 
+    @org.mockito.Spy
+    private PresencaDomainService domainService = new PresencaDomainService(new TransicaoDePresencaPolicy());
+
     @InjectMocks
     private PresencaService presencaService;
 
@@ -61,6 +68,7 @@ class PresencaServiceIntegrationTest {
 
         presenca = mock(Presenca.class);
         lenient().when(presenca.getId()).thenReturn(presencaId);
+        lenient().when(presenca.getStatus()).thenReturn(Status.PENDENTE);
     }
 
     @Nested

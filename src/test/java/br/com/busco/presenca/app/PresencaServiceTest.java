@@ -10,8 +10,10 @@ import br.com.busco.presenca.domain.PresencaRepository;
 import br.com.busco.presenca.domain.Status;
 import br.com.busco.presenca.domain.Viagem;
 import br.com.busco.presenca.domain.exceptions.NaoPossivelJustificarPresenca;
-import br.com.busco.presenca.domain.service.EmbarcarRateLimiter;
-import br.com.busco.presenca.domain.service.PresencaLockService;
+import br.com.busco.presenca.domain.policy.TransicaoDePresencaPolicy;
+import br.com.busco.presenca.domain.service.PresencaDomainService;
+import br.com.busco.presenca.infra.redis.EmbarcarRateLimiter;
+import br.com.busco.presenca.infra.redis.PresencaLockService;
 import br.com.busco.presenca.infra.redis.PresencaCacheService;
 import br.com.busco.presenca.sk.ids.AlunoId;
 import br.com.busco.presenca.sk.ids.ViagemId;
@@ -63,7 +65,8 @@ class PresencaServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new PresencaService(repository, carterinhaGateway, viagemGateway, cacheService, rateLimiter, lockService);
+        service = new PresencaService(repository, carterinhaGateway, viagemGateway, cacheService, rateLimiter, lockService,
+                new PresencaDomainService(new TransicaoDePresencaPolicy()));
         viagem = Viagem.of(VIAGEM_ID, DataViagem.of(LocalDateTime.of(2026, 6, 10, 8, 0)));
     }
 
@@ -163,7 +166,7 @@ class PresencaServiceTest {
     @DisplayName("nao justifica aluno presente")
     void naoJustificaAlunoPresente() {
         Presenca presenca = Presenca.of(ALUNO, viagem);
-        presenca.registrarPresenca();
+        new PresencaDomainService(new TransicaoDePresencaPolicy()).registrarPresenca(presenca);
         when(lockService.tryLock(ALUNO, VIAGEM_ID)).thenReturn(true);
         when(repository.findByAlunoAndViagemViagem(ALUNO, VIAGEM_ID)).thenReturn(Optional.of(presenca));
 
